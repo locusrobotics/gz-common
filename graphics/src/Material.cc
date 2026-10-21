@@ -164,15 +164,28 @@ void Material::SetTextureImage(const std::string &_tex,
   // If the texture image doesn't exist then try the next most likely path.
   if (!exists(this->dataPtr->texImage))
   {
-    // Try to resolve this texture image to a locally cached path in a
-    // separate directory
-    this->dataPtr->texImage = common::findFile(_tex);
-    if (!exists(this->dataPtr->texImage))
+    // Check the model's own materials/textures directory before searching
+    // globally. A bare name such as "texture.png" is shared by many models
+    // (e.g. all Google Scanned Objects), so a global search could return
+    // another model's texture.
+    const std::string modelTexture = common::joinPaths(_resourcePath, "..",
+        "materials", "textures", _tex);
+    if (exists(modelTexture))
     {
-      this->dataPtr->texImage = common::joinPaths(_resourcePath, "..",
-          "materials", "textures", _tex);
-      if (!exists(this->dataPtr->texImage))
+      this->dataPtr->texImage = modelTexture;
+    }
+    else
+    {
+      // Try to resolve this texture image to a locally cached path in a
+      // separate directory
+      const std::string cachedTexture = common::findFile(_tex);
+      if (exists(cachedTexture))
       {
+        this->dataPtr->texImage = cachedTexture;
+      }
+      else
+      {
+        this->dataPtr->texImage = modelTexture;
         gzerr << "Unable to find texture [" << _tex << "] as a locally"
               " cached texture or in path ["<< _resourcePath << "]\n";
       }
